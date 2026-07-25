@@ -1,4 +1,4 @@
-<!doctype html>
+  <!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -362,7 +362,7 @@ input,select,textarea{width:100%;padding:13px;border:1px solid #d9d3c8;border-ra
 <div class="card" style="margin-top:28px"><h2>기본 정보</h2>
 <div class="grid2">
 <div class="field"><label>이름</label><input id="name" required placeholder="이름"></div>
-<div class="field"><label>생년월일</label><input id="birth" required type="text" maxlength="10" placeholder="YYYY-MM-DD" inputmode="numeric" autocomplete="bday"></div>
+<div class="field"><label>생년월일</label><input id="birth" required type="text" maxlength="10" placeholder="YYYY-MM-DD" inputmode="numeric" autocomplete="bday" pattern="\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])"></div>
 <div class="field"><label>연락처</label><input id="phone" required type="tel" maxlength="13" inputmode="numeric" autocomplete="tel" placeholder="010-0000-0000"></div>
 <div class="field"><label>사는 곳</label><input id="area" required placeholder="구까지만 입력해주세요"></div>
 <div class="field"><label>MBTI</label><input id="mbti" required placeholder="예: ENFP"></div>
@@ -493,6 +493,7 @@ let sc=[0,0,0,0];seasonAns.forEach(a=>{sc[a.o]+=2;sc[a.t]+=1});
 let total=sc.reduce((a,b)=>a+b,0), pct=sc.map(x=>Math.round(x/total*100));
 let win=sc.indexOf(Math.max(...sc)), d=info[win], labels=['겨울','봄','여름','가을'];
 finalData={ext,sc,pct,win,d,labels};
+  window.sendScentLabResult(finalData);
 
 resultArea.innerHTML=`
 <p class="muted">SCENT LAB · RESULT 01</p>
@@ -577,131 +578,148 @@ scentLabOpenPage('result2');
 
 
 
-<script id="verified-basic-info-gate">
-(function(){
-  const ids=['name','birth','phone','area','mbti','mood','like'];
 
-  function validAll(){
+
+
+
+
+
+
+
+
+
+
+\n
+<script id="scentlab-clean-integration">
+(function(){
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycbyjyNkDTdRwWpz6R1yDT8Er1BN-wnVlUWQjZFnWbmTneUHLes7ggntWW3r3B1xolJKK2Q/exec";
+  let sent = false;
+
+  function value(id){
+    const el = document.getElementById(id);
+    return el ? String(el.value || '').trim() : '';
+  }
+
+  function birthFormat(v){
+    const n = v.replace(/\D/g,'').slice(0,8);
+    if(n.length <= 4) return n;
+    if(n.length <= 6) return n.slice(0,4)+'-'+n.slice(4);
+    return n.slice(0,4)+'-'+n.slice(4,6)+'-'+n.slice(6);
+  }
+
+  function phoneFormat(v){
+    const n = v.replace(/\D/g,'').slice(0,11);
+    if(n.length <= 3) return n;
+    if(n.length <= 7) return n.slice(0,3)+'-'+n.slice(3);
+    return n.slice(0,3)+'-'+n.slice(3,7)+'-'+n.slice(7);
+  }
+
+  function validBirth(v){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const [y,m,d]=v.split('-').map(Number);
+
+    if(y < 1900) return false;
+    if(m < 1 || m > 12) return false;
+    if(d < 1 || d > 31) return false;
+
+    const maxDay=new Date(y,m,0).getDate();
+    if(d > maxDay) return false;
+
+    const entered=new Date(y,m-1,d);
+    entered.setHours(0,0,0,0);
+    const today=new Date();
+    today.setHours(0,0,0,0);
+    if(entered > today) return false;
+
+    return true;
+  }
+
+  function validPhone(v){
+    return /^01[016789]-\d{3,4}-\d{4}$/.test(v);
+  }
+
+  function validateStart(){
+    const ids = ['name','birth','phone','area','mbti','mood','like'];
     for(const id of ids){
-      const el=document.getElementById(id);
-      if(!el || !String(el.value||'').trim()){
-        if(el){
-          el.setCustomValidity('필수 입력 항목입니다.');
-          el.reportValidity();
-          el.setCustomValidity('');
-          el.focus();
-        }
+      const el = document.getElementById(id);
+      if(!el || !String(el.value || '').trim()){
+        alert('기본 정보를 모두 입력해주세요.');
+        if(el) el.focus();
         return false;
       }
+    }
+
+    const birth = value('birth');
+    if(!validBirth(birth)){
+      alert('생년월일을 실제 날짜로 정확히 입력해주세요. 오늘 이후 날짜는 입력할 수 없습니다.');
+      document.getElementById('birth')?.focus();
+      return false;
+    }
+
+    const phone = value('phone');
+    if(!validPhone(phone)){
+      alert('연락처를 11자리 휴대폰 번호로 입력해주세요.');
+      document.getElementById('phone')?.focus();
+      return false;
     }
     return true;
   }
 
-  function startTest(e){
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-
-    if(!validAll()) return false;
-
-    const intro=document.getElementById('intro');
-    const extro=document.getElementById('extro');
-    if(intro) intro.classList.remove('active');
-    if(extro) extro.classList.add('active');
-
-    window.scrollTo({top:0,behavior:'instant'});
-    if(typeof renderPair==='function') renderPair();
-    return false;
-  }
-
-  window.addEventListener('DOMContentLoaded',function(){
-    const btn=document.getElementById('startTestBtn');
-    if(!btn) return;
-    btn.onclick=null;
-    btn.addEventListener('click',startTest,true);
-  });
-})();
-</script>
-
-
-<script id="scentlab-flow-repair">
-(function(){
-  window.scentLabOpenPage=function(id){
-    document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-    const target=document.getElementById(id);
+  window.scentLabOpenPage = function(id){
+    document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+    const target = document.getElementById(id);
     if(target) target.classList.add('active');
     window.scrollTo(0,0);
-    if(id==='extro' && typeof renderPair==='function') renderPair();
-    if(id==='season' && typeof renderSeason==='function') renderSeason();
+    if(id === 'extro' && typeof renderPair === 'function') renderPair();
+    if(id === 'season' && typeof renderSeason === 'function') renderSeason();
   };
 
-  // Keep the working required-info gate, but make its destination explicit.
-  window.addEventListener('DOMContentLoaded',function(){
-    const start=document.getElementById('startTestBtn');
-    if(start){
-      // do not overwrite the existing required validation listener
-      // this helper is only used by repaired transitions below
+  window.go = function(id){ window.scentLabOpenPage(id); };
+
+  window.sendScentLabResult = function(fd){
+    if(sent || !fd || !fd.d) return;
+
+    const payload = {
+      name: value('name'),
+      birth: value('birth'),
+      phone: value('phone'),
+      area: value('area'),
+      mbti: value('mbti'),
+      mood: value('mood'),
+      like: value('like'),
+      extResult: fd.ext || '',
+      season: fd.d.season || ''
+    };
+
+    sent = true;
+    fetch(ENDPOINT, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(function(){
+      sent = false;
+    });
+  };
+
+  window.addEventListener('DOMContentLoaded', function(){
+    const birth = document.getElementById('birth');
+    const phone = document.getElementById('phone');
+    if(birth) birth.addEventListener('input', function(){ this.value = birthFormat(this.value); });
+    if(phone) phone.addEventListener('input', function(){ this.value = phoneFormat(this.value); });
+
+    const btn = document.getElementById('startTestBtn');
+    if(btn){
+      btn.onclick = function(e){
+        e.preventDefault();
+        if(!validateStart()) return false;
+        window.scentLabOpenPage('extro');
+        return false;
+      };
     }
   });
 })();
 </script>
 
-
-<script id="scentlab-go-compat">
-function go(id){ scentLabOpenPage(id); }
-</script>
-
-
-<script id="scentlab-input-formatters">
-(function(){
- function birthFormat(v){
-   const d=v.replace(/\D/g,'').slice(0,8);
-   if(d.length<=4) return d;
-   if(d.length<=6) return d.slice(0,4)+'-'+d.slice(4);
-   return d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6);
- }
- function phoneFormat(v){
-   const d=v.replace(/\D/g,'').slice(0,11);
-   if(d.length<=3) return d;
-   if(d.length<=7) return d.slice(0,3)+'-'+d.slice(3);
-   return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);
- }
- function validBirth(v){
-   if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
-   const [y,m,d]=v.split('-').map(Number);
-   if(y<1900 || y>2026) return false;
-   const dt=new Date(y,m-1,d);
-   return dt.getFullYear()===y && dt.getMonth()===m-1 && dt.getDate()===d;
- }
- function validPhone(v){ return /^01[016789]-\d{3,4}-\d{4}$/.test(v); }
-
- window.scentLabValidateFormattedInputs=function(){
-   const b=document.getElementById('birth'), p=document.getElementById('phone');
-   if(!b || !validBirth(b.value)){
-     alert('생년월일을 YYYY-MM-DD 형식으로 정확히 입력해주세요.');
-     if(b)b.focus(); return false;
-   }
-   if(!p || !validPhone(p.value)){
-     alert('연락처를 11자리 휴대폰 번호로 입력해주세요.');
-     if(p)p.focus(); return false;
-   }
-   return true;
- };
-
- window.addEventListener('DOMContentLoaded',function(){
-   const b=document.getElementById('birth'),p=document.getElementById('phone');
-   if(b)b.addEventListener('input',()=>{b.value=birthFormat(b.value)});
-   if(p)p.addEventListener('input',()=>{p.value=phoneFormat(p.value)});
-   const btn=document.getElementById('startTestBtn');
-   if(btn){
-     btn.addEventListener('click',function(e){
-       if(!window.scentLabValidateFormattedInputs()){
-         e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-       }
-     },true);
-   }
- });
-})();
-</script>
-
-\n<script id="scentlab-google-sheet-submit">\n(function(){\n  const ENDPOINT='https://script.google.com/macros/s/AKfycbyjyNkDTdRwWpz6R1yDT8Er1BN-wnVlUWQjZFnWbmTneUHLes7ggntWW3r3B1xolJKK2Q/exec';\n  let sent=false;\n  function val(id){const e=document.getElementById(id);return e?String(e.value||'').trim():''}\n  function submitResult(){\n    if(sent || !window.finalData) return;\n    const fd=window.finalData;\n    const sp=(window.scentProfiles||{})[fd.ext+'-'+fd.d.season]||{};\n    const form=new FormData();\n    const data={\n      timestamp:new Date().toLocaleString('ko-KR'),\n      name:val('name'), birth:val('birth'), phone:val('phone'), area:val('area'),\n      mbti:val('mbti'), mood:val('mood'), like:val('like'),\n      extroversion:fd.ext,\n      first_answers:(window.pairAns||[]).map((x,i)=>`${i+1}. ${((window.pairs||[])[i]||[])[x]||''}`).join(' | '),\n      winter_score:fd.sc[0], spring_score:fd.sc[1], summer_score:fd.sc[2], autumn_score:fd.sc[3],\n      winter_pct:fd.pct[0]+'%', spring_pct:fd.pct[1]+'%', summer_pct:fd.pct[2]+'%', autumn_pct:fd.pct[3]+'%',\n      final_season:fd.d.season, final_type:fd.ext+' '+fd.d.season+' '+fd.d.plant+'형',\n      second_answers:(window.seasonAns||[]).map((a,i)=>{const g=(window.groups||[])[i]||[];return `${i+1}. ○ ${g[a.o]||''} / △ ${g[a.t]||''}`}).join(' | '),\n      perfume:sp.name||fd.d.name||'', top:sp.top||fd.d.top||'', middle:sp.middle||fd.d.mid||'', base:sp.base||fd.d.base||'',\n      source:location.href\n    };\n    Object.entries(data).forEach(([k,v])=>form.append(k,v));\n    sent=true;\n    try{\n      fetch(ENDPOINT,{method:'POST',mode:'no-cors',body:form,keepalive:true}).catch(()=>{sent=false});\n    }catch(e){sent=false}\n  }\n  const original=window.showResult2;\n  if(typeof original==='function'){\n    window.showResult2=function(){const r=original.apply(this,arguments);setTimeout(submitResult,50);return r};\n  }\n})();\n</script>\n</body></html>
+</body></html>

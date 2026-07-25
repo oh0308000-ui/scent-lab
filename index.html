@@ -1,4 +1,4 @@
-  <!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -362,7 +362,7 @@ input,select,textarea{width:100%;padding:13px;border:1px solid #d9d3c8;border-ra
 <div class="card" style="margin-top:28px"><h2>기본 정보</h2>
 <div class="grid2">
 <div class="field"><label>이름</label><input id="name" required placeholder="이름"></div>
-<div class="field"><label>생년월일</label><input id="birth" required type="text" maxlength="10" placeholder="YYYY-MM-DD" inputmode="numeric" autocomplete="bday" pattern="\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])"></div>
+<div class="field"><label>생년월일</label><input id="birth" required type="text" maxlength="10" placeholder="YYYY-MM-DD" inputmode="numeric" autocomplete="bday"></div>
 <div class="field"><label>연락처</label><input id="phone" required type="tel" maxlength="13" inputmode="numeric" autocomplete="tel" placeholder="010-0000-0000"></div>
 <div class="field"><label>사는 곳</label><input id="area" required placeholder="구까지만 입력해주세요"></div>
 <div class="field"><label>MBTI</label><input id="mbti" required placeholder="예: ENFP"></div>
@@ -493,7 +493,6 @@ let sc=[0,0,0,0];seasonAns.forEach(a=>{sc[a.o]+=2;sc[a.t]+=1});
 let total=sc.reduce((a,b)=>a+b,0), pct=sc.map(x=>Math.round(x/total*100));
 let win=sc.indexOf(Math.max(...sc)), d=info[win], labels=['겨울','봄','여름','가을'];
 finalData={ext,sc,pct,win,d,labels};
-  window.sendScentLabResult(finalData);
 
 resultArea.innerHTML=`
 <p class="muted">SCENT LAB · RESULT 01</p>
@@ -590,135 +589,39 @@ scentLabOpenPage('result2');
 
 
 \n
-<script id="scentlab-clean-integration">
+<script id="scentlab-strict-start-gate">
 (function(){
-  const ENDPOINT = "https://script.google.com/macros/s/AKfycbyjyNkDTdRwWpz6R1yDT8Er1BN-wnVlUWQjZFnWbmTneUHLes7ggntWW3r3B1xolJKK2Q/exec";
-  let sent = false;
-
-  function value(id){
-    const el = document.getElementById(id);
-    return el ? String(el.value || '').trim() : '';
-  }
-
-  function birthFormat(v){
-    const n = v.replace(/\D/g,'').slice(0,8);
-    if(n.length <= 4) return n;
-    if(n.length <= 6) return n.slice(0,4)+'-'+n.slice(4);
-    return n.slice(0,4)+'-'+n.slice(4,6)+'-'+n.slice(6);
-  }
-
-  function phoneFormat(v){
-    const n = v.replace(/\D/g,'').slice(0,11);
-    if(n.length <= 3) return n;
-    if(n.length <= 7) return n.slice(0,3)+'-'+n.slice(3);
-    return n.slice(0,3)+'-'+n.slice(3,7)+'-'+n.slice(7);
-  }
-
-  function validBirth(v){
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
-    const [y,m,d]=v.split('-').map(Number);
-
-    if(y < 1900) return false;
-    if(m < 1 || m > 12) return false;
-    if(d < 1 || d > 31) return false;
-
-    const maxDay=new Date(y,m,0).getDate();
-    if(d > maxDay) return false;
-
-    const entered=new Date(y,m-1,d);
-    entered.setHours(0,0,0,0);
-    const today=new Date();
-    today.setHours(0,0,0,0);
-    if(entered > today) return false;
-
-    return true;
-  }
-
-  function validPhone(v){
-    return /^01[016789]-\d{3,4}-\d{4}$/.test(v);
-  }
-
-  function validateStart(){
-    const ids = ['name','birth','phone','area','mbti','mood','like'];
-    for(const id of ids){
-      const el = document.getElementById(id);
-      if(!el || !String(el.value || '').trim()){
-        alert('기본 정보를 모두 입력해주세요.');
-        if(el) el.focus();
-        return false;
-      }
-    }
-
-    const birth = value('birth');
-    if(!validBirth(birth)){
-      alert('생년월일을 실제 날짜로 정확히 입력해주세요. 오늘 이후 날짜는 입력할 수 없습니다.');
-      document.getElementById('birth')?.focus();
-      return false;
-    }
-
-    const phone = value('phone');
-    if(!validPhone(phone)){
-      alert('연락처를 11자리 휴대폰 번호로 입력해주세요.');
-      document.getElementById('phone')?.focus();
-      return false;
-    }
-    return true;
-  }
-
-  window.scentLabOpenPage = function(id){
-    document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-    const target = document.getElementById(id);
-    if(target) target.classList.add('active');
-    window.scrollTo(0,0);
-    if(id === 'extro' && typeof renderPair === 'function') renderPair();
-    if(id === 'season' && typeof renderSeason === 'function') renderSeason();
-  };
-
-  window.go = function(id){ window.scentLabOpenPage(id); };
-
-  window.sendScentLabResult = function(fd){
-    if(sent || !fd || !fd.d) return;
-
-    const payload = {
-      name: value('name'),
-      birth: value('birth'),
-      phone: value('phone'),
-      area: value('area'),
-      mbti: value('mbti'),
-      mood: value('mood'),
-      like: value('like'),
-      extResult: fd.ext || '',
-      season: fd.d.season || ''
-    };
-
-    sent = true;
-    fetch(ENDPOINT, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify(payload),
-      keepalive: true
-    }).catch(function(){
-      sent = false;
-    });
-  };
-
-  window.addEventListener('DOMContentLoaded', function(){
-    const birth = document.getElementById('birth');
-    const phone = document.getElementById('phone');
-    if(birth) birth.addEventListener('input', function(){ this.value = birthFormat(this.value); });
-    if(phone) phone.addEventListener('input', function(){ this.value = phoneFormat(this.value); });
-
-    const btn = document.getElementById('startTestBtn');
-    if(btn){
-      btn.onclick = function(e){
-        e.preventDefault();
-        if(!validateStart()) return false;
-        window.scentLabOpenPage('extro');
-        return false;
-      };
-    }
-  });
+ function birthFmt(v){const n=v.replace(/\D/g,'').slice(0,8);return n.length<=4?n:n.length<=6?n.slice(0,4)+'-'+n.slice(4):n.slice(0,4)+'-'+n.slice(4,6)+'-'+n.slice(6);}
+ function phoneFmt(v){const n=v.replace(/\D/g,'').slice(0,11);return n.length<=3?n:n.length<=7?n.slice(0,3)+'-'+n.slice(3):n.slice(0,3)+'-'+n.slice(3,7)+'-'+n.slice(7);}
+ function validBirth(v){
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;
+   const [y,m,d]=v.split('-').map(Number);
+   if(y<1900||m<1||m>12||d<1||d>31)return false;
+   if(d>new Date(y,m,0).getDate())return false;
+   const x=new Date(y,m-1,d);x.setHours(0,0,0,0);
+   const t=new Date();t.setHours(0,0,0,0);
+   return x<=t;
+ }
+ function validPhone(v){return /^01[016789]-\d{3,4}-\d{4}$/.test(v);}
+ addEventListener('DOMContentLoaded',()=>{
+   const b=document.getElementById('birth'),p=document.getElementById('phone');
+   if(b)b.oninput=function(){this.value=birthFmt(this.value)};
+   if(p)p.oninput=function(){this.value=phoneFmt(this.value)};
+   const old=document.getElementById('startTestBtn'); if(!old)return;
+   const btn=old.cloneNode(true); old.parentNode.replaceChild(btn,old);
+   btn.addEventListener('click',e=>{
+     e.preventDefault();
+     for(const id of ['name','birth','phone','area','mbti','mood','like']){
+       const el=document.getElementById(id);
+       if(!el||!String(el.value||'').trim()){alert('기본 정보를 모두 입력해주세요.');if(el)el.focus();return;}
+     }
+     if(!validBirth(b.value)){alert('생년월일을 정확히 입력해주세요.\n월은 01~12, 일은 실제 존재하는 날짜만 가능하며 오늘 이후 날짜는 입력할 수 없습니다.');b.focus();return;}
+     if(!validPhone(p.value)){alert('연락처를 11자리 휴대폰 번호로 입력해주세요.');p.focus();return;}
+     document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+     document.getElementById('extro').classList.add('active');
+     scrollTo(0,0); if(typeof renderPair==='function')renderPair();
+   });
+ });
 })();
 </script>
 

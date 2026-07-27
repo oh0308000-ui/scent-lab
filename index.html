@@ -493,6 +493,7 @@ let sc=[0,0,0,0];seasonAns.forEach(a=>{sc[a.o]+=2;sc[a.t]+=1});
 let total=sc.reduce((a,b)=>a+b,0), pct=sc.map(x=>Math.round(x/total*100));
 let win=sc.indexOf(Math.max(...sc)), d=info[win], labels=['겨울','봄','여름','가을'];
 finalData={ext,sc,pct,win,d,labels};
+if(window.saveScentLabResult) window.saveScentLabResult(finalData);
 
 resultArea.innerHTML=`
 <p class="muted">SCENT LAB · RESULT 01</p>
@@ -577,131 +578,29 @@ scentLabOpenPage('result2');
 
 
 
-<script id="verified-basic-info-gate">
+
+
+
+
+
+
+
+
+
+
+
+<script id="scentlab-final-integration">
 (function(){
-  const ids=['name','birth','phone','area','mbti','mood','like'];
-
-  function validAll(){
-    for(const id of ids){
-      const el=document.getElementById(id);
-      if(!el || !String(el.value||'').trim()){
-        if(el){
-          el.setCustomValidity('필수 입력 항목입니다.');
-          el.reportValidity();
-          el.setCustomValidity('');
-          el.focus();
-        }
-        return false;
-      }
-    }
-    return true;
-  }
-
-  function startTest(e){
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-
-    if(!validAll()) return false;
-
-    const intro=document.getElementById('intro');
-    const extro=document.getElementById('extro');
-    if(intro) intro.classList.remove('active');
-    if(extro) extro.classList.add('active');
-
-    window.scrollTo({top:0,behavior:'instant'});
-    if(typeof renderPair==='function') renderPair();
-    return false;
-  }
-
-  window.addEventListener('DOMContentLoaded',function(){
-    const btn=document.getElementById('startTestBtn');
-    if(!btn) return;
-    btn.onclick=null;
-    btn.addEventListener('click',startTest,true);
-  });
+ const ENDPOINT="https://script.google.com/macros/s/AKfycbyjyNkDTdRwWpz6R1yDT8Er1BN-wnVlUWQjZFnWbmTneUHLes7ggntWW3r3B1xolJKK2Q/exec"; let sent=false;
+ const val=id=>String(document.getElementById(id)?.value||'').trim();
+ function bf(v){const n=v.replace(/\D/g,'').slice(0,8);return n.length<=4?n:n.length<=6?n.slice(0,4)+'-'+n.slice(4):n.slice(0,4)+'-'+n.slice(4,6)+'-'+n.slice(6);}
+ function pf(v){const n=v.replace(/\D/g,'').slice(0,11);return n.length<=3?n:n.length<=7?n.slice(0,3)+'-'+n.slice(3):n.slice(0,3)+'-'+n.slice(3,7)+'-'+n.slice(7);}
+ function vb(v){if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const [y,m,d]=v.split('-').map(Number),now=new Date();if(y<1900||y>now.getFullYear()||m<1||m>12||d<1||d>31)return false;if(d>new Date(y,m,0).getDate())return false;const x=new Date(y,m-1,d);x.setHours(0,0,0,0);now.setHours(0,0,0,0);return x<=now;}
+ function vp(v){return /^01[016789]-\d{3,4}-\d{4}$/.test(v);}
+ window.scentLabOpenPage=function(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(p)p.classList.add('active');scrollTo(0,0);if(id==='extro'&&typeof renderPair==='function')renderPair();if(id==='season'&&typeof renderSeason==='function')renderSeason();};
+ window.go=id=>scentLabOpenPage(id);
+ window.saveScentLabResult=function(fd){if(sent||!fd||!fd.d)return;sent=true;fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({name:val('name'),birth:val('birth'),phone:val('phone'),area:val('area'),mbti:val('mbti'),mood:val('mood'),like:val('like'),extResult:fd.ext||'',season:fd.d.season||''}),keepalive:true}).catch(()=>sent=false);};
+ addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('birth'),p=document.getElementById('phone');if(b)b.oninput=()=>b.value=bf(b.value);if(p)p.oninput=()=>p.value=pf(p.value);const old=document.getElementById('startTestBtn');if(!old)return;const btn=old.cloneNode(true);old.parentNode.replaceChild(btn,old);btn.addEventListener('click',e=>{e.preventDefault();for(const id of ['name','birth','phone','area','mbti','mood','like']){const el=document.getElementById(id);if(!el||!String(el.value||'').trim()){alert('기본 정보를 모두 입력해주세요.');el?.focus();return;}}if(!vb(val('birth'))){alert('생년월일을 정확히 입력해주세요.\n월은 01~12, 일은 실제 존재하는 날짜만 입력할 수 있습니다.');b.focus();return;}if(!vp(val('phone'))){alert('연락처를 11자리 휴대폰 번호로 입력해주세요.');p.focus();return;}scentLabOpenPage('extro');});});
 })();
 </script>
-
-
-<script id="scentlab-flow-repair">
-(function(){
-  window.scentLabOpenPage=function(id){
-    document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-    const target=document.getElementById(id);
-    if(target) target.classList.add('active');
-    window.scrollTo(0,0);
-    if(id==='extro' && typeof renderPair==='function') renderPair();
-    if(id==='season' && typeof renderSeason==='function') renderSeason();
-  };
-
-  // Keep the working required-info gate, but make its destination explicit.
-  window.addEventListener('DOMContentLoaded',function(){
-    const start=document.getElementById('startTestBtn');
-    if(start){
-      // do not overwrite the existing required validation listener
-      // this helper is only used by repaired transitions below
-    }
-  });
-})();
-</script>
-
-
-<script id="scentlab-go-compat">
-function go(id){ scentLabOpenPage(id); }
-</script>
-
-
-<script id="scentlab-input-formatters">
-(function(){
- function birthFormat(v){
-   const d=v.replace(/\D/g,'').slice(0,8);
-   if(d.length<=4) return d;
-   if(d.length<=6) return d.slice(0,4)+'-'+d.slice(4);
-   return d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6);
- }
- function phoneFormat(v){
-   const d=v.replace(/\D/g,'').slice(0,11);
-   if(d.length<=3) return d;
-   if(d.length<=7) return d.slice(0,3)+'-'+d.slice(3);
-   return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);
- }
- function validBirth(v){
-   if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
-   const [y,m,d]=v.split('-').map(Number);
-   if(y<1900 || y>2026) return false;
-   const dt=new Date(y,m-1,d);
-   return dt.getFullYear()===y && dt.getMonth()===m-1 && dt.getDate()===d;
- }
- function validPhone(v){ return /^01[016789]-\d{3,4}-\d{4}$/.test(v); }
-
- window.scentLabValidateFormattedInputs=function(){
-   const b=document.getElementById('birth'), p=document.getElementById('phone');
-   if(!b || !validBirth(b.value)){
-     alert('생년월일을 YYYY-MM-DD 형식으로 정확히 입력해주세요.');
-     if(b)b.focus(); return false;
-   }
-   if(!p || !validPhone(p.value)){
-     alert('연락처를 11자리 휴대폰 번호로 입력해주세요.');
-     if(p)p.focus(); return false;
-   }
-   return true;
- };
-
- window.addEventListener('DOMContentLoaded',function(){
-   const b=document.getElementById('birth'),p=document.getElementById('phone');
-   if(b)b.addEventListener('input',()=>{b.value=birthFormat(b.value)});
-   if(p)p.addEventListener('input',()=>{p.value=phoneFormat(p.value)});
-   const btn=document.getElementById('startTestBtn');
-   if(btn){
-     btn.addEventListener('click',function(e){
-       if(!window.scentLabValidateFormattedInputs()){
-         e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
-       }
-     },true);
-   }
- });
-})();
-</script>
-
 </body></html>

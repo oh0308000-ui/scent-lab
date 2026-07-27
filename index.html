@@ -599,7 +599,49 @@ scentLabOpenPage('result2');
  function vp(v){return /^01[016789]-\d{3,4}-\d{4}$/.test(v);}
  window.scentLabOpenPage=function(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(p)p.classList.add('active');scrollTo(0,0);if(id==='extro'&&typeof renderPair==='function')renderPair();if(id==='season'&&typeof renderSeason==='function')renderSeason();};
  window.go=id=>scentLabOpenPage(id);
- window.saveScentLabResult=function(fd){if(sent||!fd||!fd.d)return;sent=true;fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({name:val('name'),birth:val('birth'),phone:val('phone'),area:val('area'),mbti:val('mbti'),mood:val('mood'),like:val('like'),extResult:fd.ext||'',season:fd.d.season||''}),keepalive:true}).catch(()=>sent=false);};
+ window.saveScentLabResult=function(fd){
+  if(sent||!fd||!fd.d)return;
+
+  const pairAnswers=pairs.map((pair,index)=>({
+    left:pair[0],
+    right:pair[1],
+    selected:pairAns[index]===null?'':pair[pairAns[index]]
+  }));
+
+  const seasonAnswers=groups.map((group,index)=>({
+    circle:seasonAns[index].o===null?'':group[seasonAns[index].o],
+    triangle:seasonAns[index].t===null?'':group[seasonAns[index].t]
+  }));
+
+  const seasonScores={
+    '겨울':fd.sc?.[0]??0,
+    '봄':fd.sc?.[1]??0,
+    '여름':fd.sc?.[2]??0,
+    '가을':fd.sc?.[3]??0
+  };
+
+  sent=true;
+  fetch(ENDPOINT,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({
+      name:val('name'),
+      birth:val('birth'),
+      phone:val('phone'),
+      area:val('area'),
+      mbti:val('mbti'),
+      mood:val('mood'),
+      like:val('like'),
+      extResult:fd.ext||'',
+      season:fd.d.season||'',
+      seasonScores:seasonScores,
+      pairAnswers:pairAnswers,
+      seasonAnswers:seasonAnswers
+    }),
+    keepalive:true
+  }).catch(()=>sent=false);
+};
  addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('birth'),p=document.getElementById('phone');if(b)b.oninput=()=>b.value=bf(b.value);if(p)p.oninput=()=>p.value=pf(p.value);const old=document.getElementById('startTestBtn');if(!old)return;const btn=old.cloneNode(true);old.parentNode.replaceChild(btn,old);btn.addEventListener('click',e=>{e.preventDefault();for(const id of ['name','birth','phone','area','mbti','mood','like']){const el=document.getElementById(id);if(!el||!String(el.value||'').trim()){alert('기본 정보를 모두 입력해주세요.');el?.focus();return;}}if(!vb(val('birth'))){alert('생년월일을 정확히 입력해주세요.\n월은 01~12, 일은 실제 존재하는 날짜만 입력할 수 있습니다.');b.focus();return;}if(!vp(val('phone'))){alert('연락처를 11자리 휴대폰 번호로 입력해주세요.');p.focus();return;}scentLabOpenPage('extro');});});
 })();
 </script>
